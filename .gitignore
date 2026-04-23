@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment variables
+.env
+.env.local
+*.env
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Temporary / runtime files
+*.log
+*.tmp
+latest_snapshot.jpg
+
+# Large model outputs (keep .keras model but ignore intermediate HDF5 training cache)
+classifier model/output/train_data.h5
+classifier model/output/train_labels.h5

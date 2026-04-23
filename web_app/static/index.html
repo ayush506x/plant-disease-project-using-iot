@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tulsi Smart Plant Monitor 🌿</title>
+  <meta name="description" content="Real-time Tulsi plant health monitoring dashboard — AI disease detection with live sensor data from ESP32." />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ══════════════════════ HEADER ══════════════════════ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-icon">🌿</span>
+      <div>
+        <h1 class="brand-title">Tulsi Monitor</h1>
+        <p class="brand-sub">Smart Plant Health Dashboard</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="connection-badge" class="badge badge--disconnected">
+        <span class="badge-dot"></span>
+        <span id="connection-text">Connecting…</span>
+      </div>
+      <div class="header-time" id="header-time">--:--:--</div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════ HEALTH BANNER ══════════════════════ -->
+<div id="health-banner" class="health-banner health-banner--idle">
+  <span id="health-emoji">🌱</span>
+  <span id="health-text">Awaiting plant scan…</span>
+</div>
+
+<!-- ══════════════════════ MAIN GRID ══════════════════════ -->
+<main class="main-grid">
+
+  <!-- ── Left Column: Camera + AI ── -->
+  <section class="panel panel--camera">
+    <div class="panel-header">
+      <span class="panel-icon">📷</span>
+      <h2 class="panel-title">Live Plant View</h2>
+      <span class="panel-tag" id="cam-status">No signal</span>
+    </div>
+
+    <div class="camera-frame" id="camera-frame">
+      <div class="camera-placeholder" id="camera-placeholder">
+        <div class="placeholder-icon">🌿</div>
+        <p>Awaiting image from ESP32-CAM…</p>
+        <p class="placeholder-sub">Or upload a photo manually below</p>
+      </div>
+      <img id="plant-image" src="" alt="Latest plant photo" class="plant-img hidden" />
+      <div class="img-timestamp" id="img-timestamp"></div>
+    </div>
+
+    <!-- Manual upload for testing -->
+    <div class="upload-zone" id="upload-zone">
+      <label for="upload-input" class="upload-label">
+        <span class="upload-icon">⬆️</span>
+        <span>Upload image to test AI</span>
+      </label>
+      <input type="file" id="upload-input" accept="image/*" class="upload-input" />
+    </div>
+
+    <!-- AI Result Card -->
+    <div class="ai-card" id="ai-card">
+      <div class="ai-card-header">
+        <span class="ai-icon" id="ai-emoji">🤖</span>
+        <div class="ai-label-wrap">
+          <span class="ai-label" id="ai-label">Awaiting Analysis</span>
+          <span class="ai-sublabel">Disease Classification</span>
+        </div>
+        <span class="ai-conf" id="ai-conf">--%</span>
+      </div>
+
+      <!-- Confidence bars -->
+      <div class="prob-bars" id="prob-bars"></div>
+
+      <!-- Advice -->
+      <div class="ai-advice" id="ai-advice">
+        Position your Tulsi plant in front of the ESP32-CAM or upload a photo above.
+      </div>
+
+      <!-- Analyze button -->
+      <button class="btn-analyze" id="btn-analyze" onclick="requestAnalyze()">
+        <span>🔬</span> Analyze Now
+      </button>
+
+      <div class="ai-timestamp" id="ai-timestamp"></div>
+    </div>
+  </section>
+
+  <!-- ── Right Column: Sensors ── -->
+  <section class="panel panel--sensors">
+    <div class="panel-header">
+      <span class="panel-icon">📡</span>
+      <h2 class="panel-title">Live Sensor Data</h2>
+      <span class="panel-tag" id="sensor-age">No data</span>
+    </div>
+
+    <div class="sensor-grid">
+
+      <!-- Temperature -->
+      <div class="sensor-card" id="card-temp" data-unit="°C">
+        <div class="sensor-icon-wrap" style="--card-color: #f97316;">
+          <span class="sensor-icon">🌡️</span>
+        </div>
+        <div class="sensor-body">
+          <div class="sensor-name">Temperature</div>
+          <div class="sensor-value" id="val-temp">
+            <span class="val-number" id="num-temp">--</span>
+            <span class="val-unit">°C</span>
+          </div>
+          <div class="sensor-bar-wrap">
+            <div class="sensor-bar" id="bar-temp" style="--bar-color: #f97316; width: 0%;"></div>
+          </div>
+          <div class="sensor-range">0 – 50°C</div>
+        </div>
+      </div>
+
+      <!-- Humidity -->
+      <div class="sensor-card" id="card-hum" data-unit="%">
+        <div class="sensor-icon-wrap" style="--card-color: #38bdf8;">
+          <span class="sensor-icon">💧</span>
+        </div>
+        <div class="sensor-body">
+          <div class="sensor-name">Humidity</div>
+          <div class="sensor-value" id="val-hum">
+            <span class="val-number" id="num-hum">--</span>
+            <span class="val-unit">%</span>
+          </div>
+          <div class="sensor-bar-wrap">
+            <div class="sensor-bar" id="bar-hum" style="--bar-color: #38bdf8; width: 0%;"></div>
+          </div>
+          <div class="sensor-range">0 – 100%</div>
+        </div>
+      </div>
+
+      <!-- Soil Moisture -->
+      <div class="sensor-card" id="card-moist" data-unit="%">
+        <div class="sensor-icon-wrap" style="--card-color: #a78bfa;">
+          <span class="sensor-icon">🌱</span>
+        </div>
+        <div class="sensor-body">
+          <div class="sensor-name">Soil Moisture</div>
+          <div class="sensor-value" id="val-moist">
+            <span class="val-number" id="num-moist">--</span>
+            <span class="val-unit">%</span>
+          </div>
+          <div class="sensor-bar-wrap">
+            <div class="sensor-bar" id="bar-moist" style="--bar-color: #a78bfa; width: 0%;"></div>
+          </div>
+          <div class="sensor-range">0 – 100%</div>
+        </div>
+      </div>
+
+      <!-- NPK — Nitrogen -->
+      <div class="sensor-card" id="card-n" data-unit="mg/kg">
+        <div class="sensor-icon-wrap" style="--card-color: #22c55e;">
+          <span class="sensor-icon">🧪</span>
+        </div>
+        <div class="sensor-body">
+          <div class="sensor-name">Nitrogen (N)</div>
+          <div class="sensor-value">
+            <span class="val-number" id="num-n">--</span>
+            <span class="val-unit">mg/kg</span>
+          </div>
+          <div class="sensor-bar-wrap">
+            <div class="sensor-bar" id="bar-n" style="--bar-color: #22c55e; width: 0%;"></div>
+          </div>
+          <div class="sensor-range">0 – 200 mg/kg</div>
+        </div>
+      </div>
+
+      <!-- NPK — Phosphorus -->
+      <div class="sensor-card" id="card-p" data-unit="mg/kg">
+        <div class="sensor-icon-wrap" style="--card-color: #facc15;">
+          <span class="sensor-icon">🧪</span>
+        </div>
+        <div class="sensor-body">
+          <div class="sensor-name">Phosphorus (P)</div>
+          <div class="sensor-value">
+            <span class="val-number" id="num-p">--</span>
+            <span class="val-unit">mg/kg</span>
+          </div>
+          <div class="sensor-bar-wrap">
+            <div class="sensor-bar" id="bar-p" style="--bar-color: #facc15; width: 0%;"></div>
+          </div>
+          <div class="sensor-range">0 – 200 mg/kg</div>
+        </div>
+      </div>
+
+      <!-- NPK — Potassium -->
+      <div class="sensor-card" id="card-k" data-unit="mg/kg">
+        <div class="sensor-icon-wrap" style="--card-color: #fb923c;">
+          <span class="sensor-icon">🧪</span>
+        </div>
+        <div class="sensor-body">
+          <div class="sensor-name">Potassium (K)</div>
+          <div class="sensor-value">
+            <span class="val-number" id="num-k">--</span>
+            <span class="val-unit">mg/kg</span>
+          </div>
+          <div class="sensor-bar-wrap">
+            <div class="sensor-bar" id="bar-k" style="--bar-color: #fb923c; width: 0%;"></div>
+          </div>
+          <div class="sensor-range">0 – 200 mg/kg</div>
+        </div>
+      </div>
+
+    </div><!-- /sensor-grid -->
+
+    <!-- Sensor timestamp -->
+    <div class="sensor-footer" id="sensor-footer">Last reading: never</div>
+
+    <!-- NPK mini chart -->
+    <div class="npk-chart-wrap">
+      <div class="npk-chart-title">NPK Nutrient Levels</div>
+      <div class="npk-chart" id="npk-chart">
+        <div class="npk-col">
+          <div class="npk-bar-track"><div class="npk-bar-fill" id="npk-n-fill" style="--ncolor:#22c55e; height:0%;"></div></div>
+          <div class="npk-col-label">N</div>
+        </div>
+        <div class="npk-col">
+          <div class="npk-bar-track"><div class="npk-bar-fill" id="npk-p-fill" style="--ncolor:#facc15; height:0%;"></div></div>
+          <div class="npk-col-label">P</div>
+        </div>
+        <div class="npk-col">
+          <div class="npk-bar-track"><div class="npk-bar-fill" id="npk-k-fill" style="--ncolor:#fb923c; height:0%;"></div></div>
+          <div class="npk-col-label">K</div>
+        </div>
+      </div>
+    </div>
+
+  </section><!-- /panel--sensors -->
+
+</main><!-- /main-grid -->
+
+<!-- ══════════════════════ FOOTER ══════════════════════ -->
+<footer class="footer">
+  <span>Tulsi Smart Monitor &mdash; ESP32 IoT + MobileNetV2 AI</span>
+  <span id="footer-ip" class="footer-ip"></span>
+</footer>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
