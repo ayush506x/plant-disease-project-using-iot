@@ -1,6 +1,6 @@
 # 🌿 Tulsi Plant Disease Detection – IoT + AI System
 
-An end-to-end smart plant monitoring system that combines **IoT sensors (ESP32)**, **deep learning (MobileNetV2)**, and a **real-time web dashboard** to detect diseases in Tulsi (Holy Basil) plants and monitor their health.
+An end-to-end smart plant monitoring system that combines **IoT sensors (ESP32)**, **deep learning**, and a **real-time web dashboard** to detect diseases in Tulsi (Holy Basil) plants and monitor their health.
 
 ---
 
