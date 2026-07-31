@@ -58,7 +58,7 @@ Tulsi/
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.8+
 - Arduino IDE (for ESP32 firmware)
 - ESP32-CAM + ESP32 board
 - Sensors: DHT11, Soil Moisture, NPK sensor
