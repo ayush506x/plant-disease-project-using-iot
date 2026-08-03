@@ -69,7 +69,7 @@ git clone https://github.com/ayush506x/plant-disease-project-using-iot.git
 cd plant-disease-project-using-iot
 ```
 
-### 2. Install Python Dependencies
+### 2. Install Python Dependencie
 ```bash
 cd web_app
 pip install -r requirements.txt
